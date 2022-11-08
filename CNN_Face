@@ -1,0 +1,51 @@
+from keras.layers import Input,Lambda,Dense,Flatten
+from keras.models import Model
+from keras.preprocessing import image
+from keras.preprocessing.image import ImageDataGenerator
+from keras.applications.vgg16 import VGG16
+from keras.applications.vgg16 import preprocess_input
+from keras.models import Sequential
+import pandas as pd
+import numpy as np
+from glob import glob
+import matplotlib.pyplot as plt
+
+IMAGE_SIZE=[224,224]
+
+train_path="C:/Users/Hi/Desktop/VS_Code/CNN_Face_Recognition/Face_Recognition/train_dataset"
+test_path="C:/Users/Hi/Desktop/VS_Code/CNN_Face_Recognition/Face_Recognition/test_dataset"
+
+vgg=VGG16(input_shape=IMAGE_SIZE+[3],weights='imagenet',include_top=False)
+
+for layers in vgg.layers:
+    layers.trainable=False
+
+folders=glob("C:/Users/Hi/Desktop/VS_Code/CNN_Face_Recognition/Face_Recognition/train_dataset/*")
+
+x=Flatten()(vgg.output)
+
+predictions=Dense(len(folders),activation='softmax')(x)
+
+model=Model(inputs=vgg.input,outputs=predictions)
+
+model.compile(loss='categorical_crossentropy',optimizer='adam',metrics=['accuracy'])
+
+from keras.preprocessing.image import ImageDataGenerator as ig
+
+train_datagen=ig(rescale=1./255,shear_range=0.2,zoom_range=0.2,horizontal_flip=True)
+
+test_datagen=ig(rescale=1./255)
+
+training_set=train_datagen.flow_from_directory(directory='C:/Users/Hi/Desktop/VS_Code/CNN_Face_Recognition/Face_Recognition/train_dataset',target_size=(224,224),batch_size=32,class_mode='categorical')
+
+
+testing_set=test_datagen.flow_from_directory(directory='C:/Users/Hi/Desktop/VS_Code/CNN_Face_Recognition/Face_Recognition/test_dataset',target_size=(224,224),batch_size=32,class_mode='categorical')
+
+r=model.fit_generator(training_set,validation_data=testing_set,epochs=120,steps_per_epoch=len(training_set),validation_steps=len(testing_set))
+
+from keras.models import load_model
+model.save('model_vgg16.h5')
+
+y_pred=model.predict(testing_set)
+y_pred
+model=load_model('model_vgg16.h5')
